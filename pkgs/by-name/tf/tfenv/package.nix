@@ -4,14 +4,26 @@
   fetchFromGitHub,
   makeWrapper,
   nix-update-script,
-  unzip,
+  testers,
+  tfenv,
+  coreutils,
   curl,
+  gawk,
   gnugrep,
   gnused,
-  gawk,
-  coreutils,
+  unzip,
 }:
 
+let
+  runtimePath = lib.makeBinPath [
+    coreutils
+    curl
+    gawk
+    gnugrep
+    gnused
+    unzip
+  ];
+in
 stdenvNoCC.mkDerivation (finalAttrs: {
   __structuredAttrs = true;
 
@@ -46,21 +58,10 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     mkdir -p $out/share/tfenv/bin-extra
     ln -s ${gnugrep}/bin/grep $out/share/tfenv/bin-extra/ggrep
 
-    tfenvPath=${
-      lib.makeBinPath [
-        unzip
-        curl
-        gnugrep
-        gnused
-        gawk
-        coreutils
-      ]
-    }:$out/share/tfenv/bin-extra
-
     for f in $out/share/tfenv/bin/* $out/share/tfenv/libexec/*; do
       [ -f "$f" ] || continue
       wrapProgram "$f" \
-        --prefix PATH : "$tfenvPath" \
+        --prefix PATH : "${runtimePath}:$out/share/tfenv/bin-extra" \
         --run 'export TFENV_CONFIG_DIR=''${TFENV_CONFIG_DIR:-''${XDG_DATA_HOME:-''$HOME/.local/share}/tfenv}'
     done
 
@@ -68,7 +69,12 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     ln -s $out/share/tfenv/bin/terraform $out/bin/terraform
   '';
 
-  passthru.updateScript = nix-update-script { };
+  passthru = {
+    updateScript = nix-update-script { };
+    tests.version = testers.testVersion {
+      package = tfenv;
+    };
+  };
 
   meta = {
     description = "Terraform version manager";
