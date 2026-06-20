@@ -10,13 +10,13 @@
 
 let
   pname = "hunk";
-  version = "0.15.3";
+  version = "0.16.0";
 
   src = fetchFromGitHub {
     owner = "modem-dev";
     repo = "hunk";
     tag = "v${version}";
-    hash = "sha256-B5EU97XPMxxjfkadXXc2zc+PiWHqywnVdWHgFZ92XZ8=";
+    hash = "sha256-UCuRKnUuDWJ7kcEHCYRV+p/LT7lYkCRzYrz9udm1vC0=";
   };
 
   node_modules = stdenv.mkDerivation {
@@ -87,7 +87,11 @@ stdenv.mkDerivation {
     mkdir -p .bun-tmp .bun-install
     BUN_TMPDIR=$PWD/.bun-tmp \
     BUN_INSTALL=$PWD/.bun-install \
-      bun build --compile src/main.tsx --outfile hunk
+      bun build --compile \
+        --no-compile-autoload-bunfig \
+        --no-compile-autoload-dotenv \
+        src/main.tsx \
+        --outfile hunk
 
     runHook postBuild
   '';
@@ -103,6 +107,7 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
+  dontFixup = true;
   dontStrip = true;
 
   doInstallCheck = true;
